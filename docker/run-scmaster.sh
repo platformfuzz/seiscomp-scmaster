@@ -50,8 +50,13 @@ if [ "$ok" != "1" ]; then
 fi
 
 seiscomp enable scmaster >/dev/null || true
-# Do not run unscoped `seiscomp update-config`: it starts scmaster and the
-# following exec then fails with EADDRINUSE on 18180.
-seiscomp update-config scmaster >/dev/null || true
 echo "starting scmaster on 18180"
+if python3 -c 'import socket; socket.create_connection(("127.0.0.1",18180),1).close()' 2>/dev/null; then
+  echo "scmaster already listening on 18180"
+  while python3 -c 'import socket; socket.create_connection(("127.0.0.1",18180),2).close()' 2>/dev/null; do
+    sleep 5
+  done
+  echo "scmaster stopped listening" >&2
+  exit 1
+fi
 exec seiscomp exec scmaster --console 1
