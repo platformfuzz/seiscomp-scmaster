@@ -50,6 +50,8 @@ if [ "$ok" != "1" ]; then
 fi
 
 seiscomp enable scmaster >/dev/null || true
-seiscomp update-config || true
+# Do not run unscoped `seiscomp update-config`: it starts scmaster and the
+# following exec then fails with EADDRINUSE on 18180.
+seiscomp update-config scmaster >/dev/null || true
 echo "starting scmaster on 18180"
 exec seiscomp exec scmaster --console 1
