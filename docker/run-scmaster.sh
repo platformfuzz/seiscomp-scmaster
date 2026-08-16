@@ -3,6 +3,8 @@ set -euo pipefail
 export SEISCOMP_ROOT="${SEISCOMP_ROOT:-/home/sysop/seiscomp}"
 export PATH="$SEISCOMP_ROOT/bin:$PATH"
 
+mkdir -p "$SEISCOMP_ROOT/var/run"
+
 DB_HOST="${DB_HOST:-mariadb}"
 DB_USER="${DB_USER:-sysop}"
 DB_PASSWORD="${DB_PASSWORD:-sysop}"
