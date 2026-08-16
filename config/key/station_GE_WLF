@@ -1,1 +1,6 @@
 global:BH
+scautopick:default
+scautoloc:default
+scamp:default
+scmag:default
+scqc:default

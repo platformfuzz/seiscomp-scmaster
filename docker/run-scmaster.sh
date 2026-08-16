@@ -3,7 +3,7 @@ set -euo pipefail
 export SEISCOMP_ROOT="${SEISCOMP_ROOT:-/home/sysop/seiscomp}"
 export PATH="$SEISCOMP_ROOT/bin:$PATH"
 
-mkdir -p "$SEISCOMP_ROOT/var/run"
+mkdir -p "$SEISCOMP_ROOT/var/run" "$SEISCOMP_ROOT/var/log"
 
 DB_HOST="${DB_HOST:-mariadb}"
 DB_USER="${DB_USER:-sysop}"
@@ -48,6 +48,29 @@ for _ in $(seq 1 60); do
 done
 if [ "$ok" != "1" ]; then
   echo "inventory did not appear in MariaDB (need 4 stations)" >&2
+  exit 1
+fi
+
+# trunk.py always talks to localhost:18180. Wait for the kernel scmaster
+# started by update-config inventory, then push station bindings into the
+# catalog so processors (scautopick, …) are not empty.
+echo "waiting for local scmaster on 18180..."
+ok_ms=0
+for _ in $(seq 1 30); do
+  if python3 -c 'import socket; socket.create_connection(("127.0.0.1",18180),2).close()' 2>/dev/null; then
+    ok_ms=1
+    break
+  fi
+  sleep 2
+done
+if [ "$ok_ms" != "1" ]; then
+  echo "scmaster not listening on 18180 after inventory sync" >&2
+  exit 1
+fi
+
+echo "syncing trunk bindings to catalog..."
+if ! seiscomp update-config trunk; then
+  echo "seiscomp update-config trunk failed" >&2
   exit 1
 fi
 
