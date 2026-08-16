@@ -16,7 +16,10 @@ station_count() {
 }
 
 inv="$SEISCOMP_ROOT/etc/inventory/ge-lab.xml"
-if [ -f "$inv" ]; then
+if [ -f /docker/apply-station-set.py ]; then
+  python3 /docker/apply-station-set.py
+fi
+if [ ! -f /tmp/runtime-inventory.ok ] && [ -f "$inv" ]; then
   echo "importing baked inventory..."
   seiscomp exec import_inv fdsnxml "$inv" || true
 fi
@@ -36,18 +39,19 @@ if [ "$ok_cfg" != "1" ]; then
 fi
 
 ok=0
-for _ in $(seq 1 60); do
+need="${INVENTORY_MIN_STATIONS:-1}"
+for _ in $(seq 1 90); do
   n=$(station_count)
   n=${n//[^0-9]/}
-  echo "Station rows: ${n:-0}"
-  if [ "${n:-0}" -ge 4 ]; then
+  echo "Station rows: ${n:-0} (need ${need})"
+  if [ "${n:-0}" -ge "$need" ]; then
     ok=1
     break
   fi
   sleep 2
 done
 if [ "$ok" != "1" ]; then
-  echo "inventory did not appear in MariaDB (need 4 stations)" >&2
+  echo "inventory did not appear in MariaDB (need ${need} stations)" >&2
   exit 1
 fi
 
